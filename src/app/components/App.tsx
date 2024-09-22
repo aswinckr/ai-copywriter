@@ -19,9 +19,17 @@ function App() {
         dangerouslyAllowBrowser: true,
       });
 
+      // Combine extractedTexts into a single string
+      const selectedText = extractedTexts.join('. ');
+
+      // Create the new prompt
+      const prompt = `Generate ${numVariations} unique variants of the following input text: ${selectedText}\n\nConsider the following instructions:\nTone: ${toneOfVoice}.\nSpecial instructions: ${specialInstructions}\n\nPlease output the variants in JSON format.\n\nEach sentence in the variant should maintain a word count close to the corresponding sentence in the input text. For example, if the first sentence of the input text has 6 words, the first sentence of each variant should also have around 6 words. Similarly, if the second sentence has 20 words, the second sentence of each variant should also have around 20 words.\n\nEnsure the number of sentences in each variant matches the number of sentences in the input text.\n\nFor example, if the input has 2 sentences, the output should be:\n{\n  "text_1": "Variant of the first sentence",\n  "text_2": "Variant of the second sentence"\n}`;
+
+      console.log('Final prompt:', prompt);
+
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: 'Hello world!' }],
+        messages: [{ role: 'user', content: prompt }],
       });
 
       const generatedContent = completion.choices[0].message.content;
