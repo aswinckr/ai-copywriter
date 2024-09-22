@@ -6,13 +6,7 @@ function App() {
   const [numVariations, setNumVariations] = React.useState(1);
   const [specialInstructions, setSpecialInstructions] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
-
-  const textbox = React.useRef<HTMLInputElement>(undefined);
-
-  const countRef = React.useCallback((element: HTMLInputElement) => {
-    if (element) element.value = '5';
-    textbox.current = element;
-  }, []);
+  const [extractedTexts, setExtractedTexts] = React.useState<string[]>([]);
 
   const onGenerate = () => {
     parent.postMessage(
@@ -34,11 +28,11 @@ function App() {
   };
 
   React.useEffect(() => {
-    // This is how we read messages sent from the plugin controller
     window.onmessage = (event) => {
-      const { type, message } = event.data.pluginMessage;
-      if (type === 'create-rectangles') {
-        console.log(`Figma Says: ${message}`);
+      const { type, texts } = event.data.pluginMessage;
+      if (type === 'frame-selected') {
+        const filteredTexts = texts.filter((text) => text.split(' ').length > 3);
+        setExtractedTexts(filteredTexts);
       }
     };
   }, []);
@@ -46,7 +40,21 @@ function App() {
   return (
     <div className="container">
       <h2>AI Copywriter</h2>
-      <div className="info-banner">Select a frame to begin</div>
+      {extractedTexts.length > 0 ? (
+        <>
+          <div className="info-banner">Select text fields to modify:</div>
+          <div className="checklist">
+            {extractedTexts.map((text, index) => (
+              <label key={index} className="checklist-item">
+                <input type="checkbox" />
+                <span className="checklist-item-text">{text}</span>
+              </label>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="info-banner">Select a frame to begin</div>
+      )}
       <p>
         <label>OpenAI API Key:</label>
         <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />

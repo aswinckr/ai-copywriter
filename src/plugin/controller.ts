@@ -1,3 +1,23 @@
+figma.showUI(__html__);
+
+figma.on('selectionchange', () => {
+  const selectedFrame = figma.currentPage.selection[0];
+  if (selectedFrame && selectedFrame.type === 'FRAME') {
+    const texts = extractTextsFromFrame(selectedFrame);
+    figma.ui.postMessage({ type: 'frame-selected', texts });
+  }
+});
+
+function extractTextsFromFrame(frame) {
+  const texts = [];
+  frame
+    .findAll((node) => node.type === 'TEXT')
+    .forEach((textNode) => {
+      texts.push(textNode.characters);
+    });
+  return texts;
+}
+
 figma.showUI(__html__, { width: 400, height: 600 });
 
 figma.ui.onmessage = (msg) => {

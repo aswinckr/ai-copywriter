@@ -53,3 +53,23 @@ button {
 button:hover {
   background-color: #5a5a5a;
 }
+
+.checklist {
+  margin-bottom: 20px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.checklist-item input[type='checkbox'] {
+  width: auto;
+  margin-right: 10px;
+  margin-top: 3px; /* Adjust this value to fine-tune vertical alignment */
+}
+
+.checklist-item-text {
+  flex: 1;
+}
