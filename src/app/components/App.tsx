@@ -1,5 +1,6 @@
 import React from 'react';
 import '../styles/ui.css';
+import OpenAI from 'openai';
 
 function App() {
   const [toneOfVoice, setToneOfVoice] = React.useState('Professional');
@@ -7,20 +8,31 @@ function App() {
   const [specialInstructions, setSpecialInstructions] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
   const [extractedTexts, setExtractedTexts] = React.useState<string[]>([]);
+  const [generatedText, setGeneratedText] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const onGenerate = () => {
-    parent.postMessage(
-      {
-        pluginMessage: {
-          type: 'create-rectangles',
-          apiKey,
-          toneOfVoice,
-          numVariations,
-          specialInstructions,
-        },
-      },
-      '*'
-    );
+  const onGenerate = async () => {
+    setIsLoading(true);
+    try {
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        dangerouslyAllowBrowser: true,
+      });
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'Hello world!' }],
+      });
+
+      const generatedContent = completion.choices[0].message.content;
+      console.log(generatedContent);
+      setGeneratedText(generatedContent);
+    } catch (error) {
+      console.error('Error generating text:', error);
+      setGeneratedText('Error generating text. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const onCancel = () => {
@@ -83,10 +95,16 @@ function App() {
         <label>Special Instructions:</label>
         <textarea value={specialInstructions} onChange={(e) => setSpecialInstructions(e.target.value)} rows={3} />
       </p>
-      <button id="create" onClick={onGenerate}>
-        Generate
+      <button id="create" onClick={onGenerate} disabled={isLoading}>
+        {isLoading ? 'Generating...' : 'Generate'}
       </button>
       <button onClick={onCancel}>Cancel</button>
+      {generatedText && (
+        <div className="generated-text">
+          <h3>Generated Text:</h3>
+          <p>{generatedText}</p>
+        </div>
+      )}
     </div>
   );
 }
