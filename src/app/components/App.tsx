@@ -4,12 +4,13 @@ import OpenAI from 'openai';
 
 function App() {
   const [toneOfVoice, setToneOfVoice] = React.useState('Professional');
-  const [numVariations, setNumVariations] = React.useState(1);
+  const [numVariations, setNumVariations] = React.useState<number>(1);
   const [specialInstructions, setSpecialInstructions] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
   const [extractedTexts, setExtractedTexts] = React.useState<string[]>([]);
   const [generatedText, setGeneratedText] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
+  const [selectedTexts, setSelectedTexts] = React.useState<string[]>([]);
 
   const onGenerate = async () => {
     setIsLoading(true);
@@ -35,6 +36,17 @@ function App() {
       const generatedContent = completion.choices[0].message.content;
       console.log(generatedContent);
       setGeneratedText(generatedContent);
+
+      // After successful text generation, create copies
+      parent.postMessage(
+        {
+          pluginMessage: {
+            type: 'generate-copies',
+            numVariations,
+          },
+        },
+        '*'
+      );
     } catch (error) {
       console.error('Error generating text:', error);
       setGeneratedText('Error generating text. Please try again.');
@@ -49,13 +61,26 @@ function App() {
 
   React.useEffect(() => {
     window.onmessage = (event) => {
-      const { type, texts } = event.data.pluginMessage;
+      const { type, texts, message } = event.data.pluginMessage;
       if (type === 'frame-selected') {
         const filteredTexts = texts.filter((text) => text.split(' ').length > 3);
         setExtractedTexts(filteredTexts);
+        setSelectedTexts([]); // Reset selected texts when a new frame is selected
+      } else if (type === 'copies-created' || type === 'error') {
+        // You can use this to show a notification to the user
+        console.log(message);
       }
     };
   }, []);
+
+  const handleCheckboxChange = (text: string, isChecked: boolean) => {
+    setSelectedTexts((prev) => (isChecked ? [...prev, text] : prev.filter((t) => t !== text)));
+  };
+
+  const handleNumVariationsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    setNumVariations(isNaN(value) ? 1 : Math.max(1, value));
+  };
 
   return (
     <div className="container">
@@ -66,7 +91,11 @@ function App() {
           <div className="checklist">
             {extractedTexts.map((text, index) => (
               <label key={index} className="checklist-item">
-                <input type="checkbox" />
+                <input
+                  type="checkbox"
+                  onChange={(e) => handleCheckboxChange(text, e.target.checked)}
+                  checked={selectedTexts.includes(text)}
+                />
                 <span className="checklist-item-text">{text}</span>
               </label>
             ))}
@@ -92,18 +121,13 @@ function App() {
       </p>
       <p>
         <label>Number of Variations:</label>
-        <input
-          type="number"
-          value={numVariations}
-          onChange={(e) => setNumVariations(parseInt(e.target.value, 10))}
-          min="1"
-        />
+        <input type="number" value={numVariations} onChange={handleNumVariationsChange} min="1" />
       </p>
       <p>
         <label>Special Instructions:</label>
         <textarea value={specialInstructions} onChange={(e) => setSpecialInstructions(e.target.value)} rows={3} />
       </p>
-      <button id="create" onClick={onGenerate} disabled={isLoading}>
+      <button id="create" onClick={onGenerate} disabled={isLoading || selectedTexts.length === 0 || !apiKey}>
         {isLoading ? 'Generating...' : 'Generate'}
       </button>
       <button onClick={onCancel}>Cancel</button>

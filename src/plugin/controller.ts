@@ -20,27 +20,32 @@ function extractTextsFromFrame(frame) {
 
 figma.showUI(__html__, { width: 400, height: 600 });
 
-figma.ui.onmessage = (msg) => {
-  if (msg.type === 'create-rectangles') {
-    const nodes = [];
+figma.ui.onmessage = async (msg) => {
+  if (msg.type === 'generate-copies') {
+    const selectedFrame = figma.currentPage.selection[0];
+    if (selectedFrame && selectedFrame.type === 'FRAME') {
+      const copies = [];
+      for (let i = 0; i < msg.numVariations; i++) {
+        const copy = selectedFrame.clone();
+        copy.x = selectedFrame.x + (selectedFrame.width + 100) * (i + 1); // Add some spacing between copies
+        figma.currentPage.appendChild(copy);
+        copies.push(copy);
+      }
+      figma.currentPage.selection = copies;
+      figma.viewport.scrollAndZoomIntoView(copies);
 
-    for (let i = 0; i < msg.count; i++) {
-      const rect = figma.createRectangle();
-      rect.x = i * 150;
-      rect.fills = [{ type: 'SOLID', color: { r: 1, g: 0.5, b: 0 } }];
-      figma.currentPage.appendChild(rect);
-      nodes.push(rect);
+      figma.ui.postMessage({
+        type: 'copies-created',
+        message: `Created ${msg.numVariations} copies of the selected frame`,
+      });
+    } else {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a frame before generating copies',
+      });
     }
-
-    figma.currentPage.selection = nodes;
-    figma.viewport.scrollAndZoomIntoView(nodes);
-
-    // This is how figma responds back to the ui
-    figma.ui.postMessage({
-      type: 'create-rectangles',
-      message: `Created ${msg.count} Rectangles`,
-    });
   }
 
-  figma.closePlugin();
+  // Keep the plugin open
+  // figma.closePlugin();
 };
