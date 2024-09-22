@@ -5,6 +5,7 @@ function App() {
   const [toneOfVoice, setToneOfVoice] = React.useState('Professional');
   const [numVariations, setNumVariations] = React.useState(1);
   const [specialInstructions, setSpecialInstructions] = React.useState('');
+  const [apiKey, setApiKey] = React.useState('');
 
   const textbox = React.useRef<HTMLInputElement>(undefined);
 
@@ -13,13 +14,12 @@ function App() {
     textbox.current = element;
   }, []);
 
-  const onCreate = () => {
-    const count = parseInt(textbox.current.value, 10);
+  const onGenerate = () => {
     parent.postMessage(
       {
         pluginMessage: {
           type: 'create-rectangles',
-          count,
+          apiKey,
           toneOfVoice,
           numVariations,
           specialInstructions,
@@ -48,8 +48,8 @@ function App() {
       <h2>AI Copywriter</h2>
       <div className="info-banner">Select a frame to begin</div>
       <p>
-        <label>Count:</label>
-        <input ref={countRef} />
+        <label>OpenAI API Key:</label>
+        <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
       </p>
       <p>
         <label>Tone of Voice:</label>
@@ -75,8 +75,8 @@ function App() {
         <label>Special Instructions:</label>
         <textarea value={specialInstructions} onChange={(e) => setSpecialInstructions(e.target.value)} rows={3} />
       </p>
-      <button id="create" onClick={onCreate}>
-        Create
+      <button id="create" onClick={onGenerate}>
+        Generate
       </button>
       <button onClick={onCancel}>Cancel</button>
     </div>
