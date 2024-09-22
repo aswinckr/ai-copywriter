@@ -20,11 +20,33 @@ function App() {
         dangerouslyAllowBrowser: true,
       });
 
-      // Combine extractedTexts into a single string
-      const selectedText = extractedTexts.join('. ');
+      // Combine selected texts into a single string
+      const selectedText = selectedTexts.join('. ');
 
       // Create the new prompt
-      const prompt = `Generate ${numVariations} unique variants of the following input text: ${selectedText}\n\nConsider the following instructions:\nTone: ${toneOfVoice}.\nSpecial instructions: ${specialInstructions}\n\nPlease output the variants in JSON format.\n\nEach sentence in the variant should maintain a word count close to the corresponding sentence in the input text. For example, if the first sentence of the input text has 6 words, the first sentence of each variant should also have around 6 words. Similarly, if the second sentence has 20 words, the second sentence of each variant should also have around 20 words.\n\nEnsure the number of sentences in each variant matches the number of sentences in the input text.\n\nFor example, if the input has 2 sentences, the output should be:\n{\n  "text_1": "Variant of the first sentence",\n  "text_2": "Variant of the second sentence"\n}`;
+      const prompt = `Generate ${numVariations} unique variants of the following input text: ${selectedText}
+
+Consider the following instructions:
+Tone: ${toneOfVoice}.
+Special instructions: ${specialInstructions}
+
+Please output the variants in JSON format.
+
+Each sentence in the variant should maintain a word count close to the corresponding sentence in the input text. For example, if the first sentence of the input text has 6 words, the first sentence of each variant should also have around 6 words. Similarly, if the second sentence has 20 words, the second sentence of each variant should also have around 20 words.
+
+Ensure the number of sentences in each variant matches the number of sentences in the input text.
+
+For example, if the input has 2 sentences and 2 variations are requested, the output should be:
+{
+  "variation1": {
+    "text_1": "Variant 1 of the first sentence",
+    "text_2": "Variant 1 of the second sentence"
+  },
+  "variation2": {
+    "text_1": "Variant 2 of the first sentence",
+    "text_2": "Variant 2 of the second sentence"
+  }
+}`;
 
       console.log('Final prompt:', prompt);
 
@@ -34,19 +56,44 @@ function App() {
       });
 
       const generatedContent = completion.choices[0].message.content;
-      console.log(generatedContent);
-      setGeneratedText(generatedContent);
+      console.log('Raw generated content:', generatedContent);
 
-      // After successful text generation, create copies
-      parent.postMessage(
-        {
-          pluginMessage: {
-            type: 'generate-copies',
-            numVariations,
+      // Clean and parse the generated content
+      const cleanedContent = generatedContent
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .replace(/json/gi, '')
+        .trim();
+      try {
+        const parsedContent = JSON.parse(cleanedContent);
+        console.log('Parsed generated content:', parsedContent);
+        setGeneratedText(JSON.stringify(parsedContent, null, 2));
+
+        // After successful text generation, create copies
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'generate-copies',
+              numVariations,
+            },
           },
-        },
-        '*'
-      );
+          '*'
+        );
+
+        // Replace text in the copies
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'replace-text',
+              generatedText: JSON.stringify(parsedContent),
+            },
+          },
+          '*'
+        );
+      } catch (parseError) {
+        console.error('Error parsing generated content:', parseError);
+        setGeneratedText('Error parsing generated content. Please try again.');
+      }
     } catch (error) {
       console.error('Error generating text:', error);
       setGeneratedText('Error generating text. Please try again.');
